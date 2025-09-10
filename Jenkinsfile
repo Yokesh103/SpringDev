@@ -40,9 +40,13 @@ pipeline {
         echo "Stopping existing application if running..."
         pkill -f $APP_NAME || true
 
-        echo "Copying JAR to /opt/apps..."
-        mkdir -p /opt/apps
-        cp $JAR_FILE /opt/apps/$APP_NAME.jar
+        sh '''
+  echo "Copying JAR to workspace deployment folder..."
+  mkdir -p $WORKSPACE/deploy
+  cp target/demo-0.0.1-SNAPSHOT.jar $WORKSPACE/deploy/
+  nohup java -jar $WORKSPACE/deploy/demo-0.0.1-SNAPSHOT.jar --server.port=8080 &
+'''
+
 
         echo "Starting new application..."
         nohup java -jar /opt/apps/$APP_NAME.jar --server.port=8080 > /opt/apps/app.log 2>&1 &
