@@ -50,7 +50,9 @@ pipeline {
                     sleep 20
 
                     echo "Testing application health..."
-                    curl -f http://localhost:8080/actuator/health
+                
+                    sh 'curl -u admin:admin -f http://localhost:8080/actuator/health'
+
                 """
             }
         }
