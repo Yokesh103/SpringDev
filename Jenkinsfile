@@ -55,7 +55,7 @@ pipeline {
         sleep 20
 
         echo "Testing application health..."
-        curl -f http://localhost:8080/actuator/health || exit 1
+        curl -f http://localhost:8080/  || exit 1
         '''
     }
 }
