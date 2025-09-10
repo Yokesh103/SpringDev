@@ -18,11 +18,15 @@ pipeline {
             }
         }
 
-        stage('Build with Maven') {
-            steps {
-                sh 'mvn clean package -DskipTests'
-            }
-        }
+       stage('Build with Maven') {
+    steps {
+        sh '''
+        mvn clean package -DskipTests
+        echo "=== Contents of target/ after build ==="
+        ls -lh target/
+        '''
+    }
+}
 
         stage('Run Unit Tests') {
             steps {
