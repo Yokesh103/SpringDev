@@ -31,22 +31,26 @@ pipeline {
         }
 
         stage('Deploy to Staging') {
-            steps {
-                sh '''
-                echo "Stopping existing application if running..."
-                pkill -f $JAR_FILE || true
+    steps {
+        sh '''
+        echo "Stopping existing application if running..."
+        pkill -f $APP_NAME || true
 
-                echo "Starting new application..."
-                nohup java -jar $JAR_FILE --server.port=8080 > app.log 2>&1 &
+        echo "Copying JAR to /opt/apps..."
+        mkdir -p /opt/apps
+        cp $JAR_FILE /opt/apps/$APP_NAME.jar
 
-                echo "Waiting for application to start..."
-                sleep 20
+        echo "Starting new application..."
+        nohup java -jar /opt/apps/$APP_NAME.jar --server.port=8080 > /opt/apps/app.log 2>&1 &
 
-                echo "Testing application health..."
-                curl -f http://localhost:8080/actuator/health || exit 1
-                '''
-            }
-        }
+        echo "Waiting for application to start..."
+        sleep 20
+
+        echo "Testing application health..."
+        curl -f http://localhost:8080/actuator/health || exit 1
+        '''
+    }
+}
 
         stage('Integration Tests') {
             steps {
