@@ -16,8 +16,8 @@ pipeline {
 
         stage('Build with Maven') {
             tools {
-                maven 'Maven-3.9.11' // Replace with your Maven tool name in Jenkins
-                jdk 'JDK17'           // Replace with your JDK tool name in Jenkins
+             maven 'Maven-3.8.1' // Correct name in Jenkins
+                jdk 'JDK-17'        // Correct name in Jenkins
             }
             steps {
                 sh 'mvn clean package -DskipTests'
