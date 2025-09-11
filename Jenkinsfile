@@ -1,70 +1,94 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven-3.8.1'   // Matches the name in Jenkins
+        jdk 'JDK-17'          // Matches the name in Jenkins
+    }
+
     environment {
-        DEPLOY_DIR = "${WORKSPACE}/deploy"
-        JAR_NAME = "demo.jar"
+        MAVEN_OPTS = '-Dmaven.repo.local=.m2/repository'
     }
 
     stages {
-
-        stage('Checkout SCM') {
+        stage('Checkout') {
             steps {
-                git url: 'https://github.com/Yokesh103/SpringDev.git', branch: 'master'
+                echo '📥 Checking out code from GitHub...'
+                checkout scm
             }
         }
 
-        stage('Build with Maven') {
-            tools {
-             maven 'Maven-3.8.1' // Correct name in Jenkins
-                jdk 'JDK-17'        // Correct name in Jenkins
-            }
+        stage('Build') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                echo '🔨 Building the application...'
+                sh 'mvn clean compile'
             }
         }
 
-        stage('Run Unit Tests') {
-            tools {
-                maven 'Maven-3.9.11'
-                jdk 'JDK17'
-            }
+        stage('Test') {
             steps {
+                echo '🧪 Running tests...'
                 sh 'mvn test'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo '📦 Packaging the application...'
+                sh 'mvn package -DskipTests'
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
             }
         }
 
         stage('Deploy to Staging') {
             steps {
+                echo '🚀 Deploying to staging...'
                 sh '''
-                    echo "Stopping existing application if running..."
-                    pkill -f demo || true
-
-                    echo "Preparing deployment directory..."
-                    mkdir -p $DEPLOY_DIR
-
-                    echo "Copying JAR to deploy directory..."
-                    cp target/demo-0.0.1-SNAPSHOT.jar $DEPLOY_DIR/$JAR_NAME
+                    echo "Stopping existing application..."
+                    pkill -f "demo-1.0.0.jar" || true
 
                     echo "Starting new application..."
-                    nohup java -jar $DEPLOY_DIR/$JAR_NAME --server.port=8080 &
+                    nohup java -jar target/demo-1.0.0.jar --server.port=8080 > app.log 2>&1 &
 
-                    echo "Waiting for application to start..."
-                    sleep 20
+                    echo "Waiting for app startup..."
+                    sleep 15
 
-                    echo "Testing application health..."
-                    curl -f http://localhost:8080/actuator/health
+                    echo "Checking health endpoint..."
+                    curl -f http://localhost:8080/health || exit 1
+                '''
+            }
+        }
+
+        stage('Integration Tests') {
+            steps {
+                echo '🔍 Running integration tests...'
+                sh '''
+                    curl -f http://localhost:8080/ || exit 1
+                    curl -f http://localhost:8080/hello || exit 1
                 '''
             }
         }
     }
 
     post {
+        always {
+            echo '🏁 Pipeline completed!'
+            cleanWs()
+        }
         success {
-            echo "✅ Pipeline completed successfully!"
+            echo '✅ Pipeline succeeded!'
         }
         failure {
-            echo "❌ Pipeline failed!"
+            echo '❌ Pipeline failed!'
         }
     }
 }
